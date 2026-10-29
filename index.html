@@ -417,9 +417,9 @@ td.num { font-family: var(--f-mono); color: var(--muted); font-variant-numeric: 
         <li><a class="btn btn-sm" href="https://steamcommunity.com/my/games/?tab=all" target="_blank" rel="noopener">Meine Steam-Spieleliste öffnen ↗</a><br><span class="muted">Bei Steam eingeloggt sein. Wer jemand anderen eintragen will: <code>steamcommunity.com/id/NAME/games/?tab=all</code></span></li>
         <li>Auf der Steam-Seite <b>ganz nach unten scrollen</b>, damit alle Spiele geladen sind.</li>
         <li><b>Strg + A</b> (alles markieren) und <b>Strg + C</b> (kopieren). Am Handy: lange tippen → „Alles auswählen“ → „Kopieren“.</li>
-        <li>Hier einfügen (<b>Strg + V</b>):</li>
+        <li>Den <b>kopierten Text</b> hier einfügen (<b>Strg + V</b>) – nicht nur den Link:</li>
       </ol>
-      <textarea id="dlg-paste" placeholder="Hier die kopierte Steam-Seite einfügen …"></textarea>
+      <textarea id="dlg-paste" placeholder="Hier den kopierten Text der Steam-Seite einfügen (Spielnamen, Spielzeiten …) – nicht nur den Link"></textarea>
       <label class="row dlg-replace"><input type="checkbox" id="dlg-replace"> Bisher angekreuzte Spiele vorher entfernen (z. B. wenn jemand anderes vorher an diesem Gerät war)</label>
       <div class="row">
         <button class="btn btn-gold" id="dlg-apply">Spiele übernehmen</button>
@@ -2250,6 +2250,14 @@ window.LEITMOTIV_SONGS = [
   $("#dlg-apply").addEventListener("click", () => {
     const text = $("#dlg-paste").value, st = $("#dlg-status");
     if (!text.trim()) { st.textContent = "Füge zuerst die kopierte Steam-Seite ein."; st.className = "dlg-status bad"; return; }
+    // Nur einen Steam-Link eingefügt? Dann erklären, was zu tun ist, und den Link öffnen anbieten
+    const link = text.trim().match(/^(?:https?:\/\/)?steamcommunity\.com\/(id|profiles)\/([^\/\s?#]+)[^\s]*$/i);
+    if (link) {
+      const url = `https://steamcommunity.com/${link[1]}/${link[2]}/games/?tab=all`;
+      st.className = "dlg-status bad";
+      st.innerHTML = `Das ist nur der Link – das Quiz kann Steam nicht selbst abrufen. <a href="${esc(url)}" target="_blank" rel="noopener">Seite öffnen ↗</a>, dort ganz runterscrollen, <b>Strg + A</b>, <b>Strg + C</b> und den kopierten Text hier einfügen.`;
+      $("#dlg-paste").value = ""; return;
+    }
     const hits = matchNames(text);
     if (!hits.length) { st.textContent = "Kein Spiel erkannt. Hast du die ganze Steam-Spieleseite kopiert?"; st.className = "dlg-status bad"; return; }
     if ($("#dlg-replace").checked) owned.clear();
