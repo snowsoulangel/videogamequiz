@@ -20,7 +20,7 @@ Ein Musikquiz für Videospiel-Soundtracks nach dem Vorbild von AMQ (Anime Music 
 - Sortiert nach Verkaufs- und Spielerzahlen; mit Konsolenfilter nach den Verkäufen auf genau dieser Konsole
 - Steam-Bibliothek per Proxy oder per eingefügter Liste automatisch ankreuzen
 
-**Songs**: 384 Songs aus 174 Spielen – pro Spiel bis zu 5 der bekanntesten Stücke (Main Theme, Gebiete, Kämpfe, Gesang). Läuft ein Song auch in anderen Spielen (Remix, Remake, Smash Bros., Mario Kart …), zählen diese ebenfalls als richtige Antwort und werden bei der Auflösung unter „Auch in …“ gezeigt. Eigene YouTube-Links hinzufügen, kaputte deaktivieren, Listen mit Freunden teilen.
+**Songs**: 469 Songs aus 244 Spielen – pro Spiel bis zu 5 der bekanntesten Stücke (Main Theme, Gebiete, Kämpfe, Gesang). Läuft ein Song auch in anderen Spielen (Remix, Remake, Smash Bros., Mario Kart …), zählen diese ebenfalls als richtige Antwort und werden bei der Auflösung unter „Auch in …“ gezeigt. Eigene YouTube-Links hinzufügen, kaputte deaktivieren, Listen mit Freunden teilen.
 
 ## Online stellen (nötig, damit YouTube abspielt)
 
