@@ -323,6 +323,52 @@ td.num { font-family: var(--f-mono); color: var(--muted); font-variant-numeric: 
 .chat-line.sys { color: var(--muted); font-style: italic; font-size: 12.5px; }
 .chat-form { display: flex; gap: 6px; }
 .chat-form input { padding: 7px 10px; }
+
+/* ---------- Deine Spiele (Startseite) ---------- */
+.mylist { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin-bottom: 16px;
+  background: linear-gradient(100deg, #f5c84214, transparent 60%), var(--panel); border-color: #4d4520; }
+.mylist h2 { margin: 0 0 4px; }
+.mylist-count { margin: 0; color: var(--muted); }
+.mylist-count b { color: var(--text, #fff); }
+.pool-field > span { font-weight: 700; }
+.seg.seg-pool { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; background: none; padding: 0; border: 0; }
+.seg.seg-pool button { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--ink); }
+.seg.seg-pool button small { color: var(--muted); font-size: 12px; font-weight: 400; }
+.seg.seg-pool button[aria-pressed="true"] { border-color: var(--gold); background: #f5c8421f; }
+.seg.seg-pool button[aria-pressed="true"] b { color: var(--gold); }
+
+/* ---------- Steam-Dialog ---------- */
+.dlg { width: min(640px, calc(100vw - 32px)); max-height: calc(100vh - 32px); background: var(--panel); color: inherit; border: 1px solid var(--line); border-radius: 14px; padding: 20px; }
+.dlg::backdrop { background: #000a; }
+.dlg-head { display: flex; justify-content: space-between; align-items: center; margin: 0 0 8px; }
+.dlg-head h2 { margin: 0; }
+.dlg-steps { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 8px; }
+.dlg textarea { width: 100%; min-height: 120px; margin-bottom: 10px; }
+.dlg-replace { font-size: 13px; color: var(--muted); margin-bottom: 12px; flex-wrap: nowrap; align-items: flex-start; }
+.dlg-status { margin: 10px 0 0; min-height: 1.4em; font-weight: 600; }
+.dlg-status.ok { color: var(--ok); }
+.dlg-status.bad { color: var(--bad); }
+
+/* ---------- Richtig / Falsch deutlich zeigen ---------- */
+.verdict { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; padding: 12px 16px; margin: -2px -4px 10px; border-radius: 10px;
+  font-family: var(--f-display); animation: verdict-pop .45s cubic-bezier(.2, 1.6, .4, 1); }
+.verdict.ok { background: #1f9d6e; color: #fff; box-shadow: 0 0 0 1px #4fd1a5, 0 8px 30px #4fd1a540; }
+.verdict.bad { background: #c23b4c; color: #fff; box-shadow: 0 0 0 1px #ff6b7a, 0 8px 30px #ff6b7a40; }
+.verdict .v-icon { font-size: 30px; line-height: 1; }
+.verdict .v-main { font-size: 26px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; }
+.verdict .v-pts { margin-left: auto; font-size: 18px; font-weight: 700; background: #ffffff2e; padding: 2px 10px; border-radius: 99px; }
+.verdict .v-sub { font-family: var(--f-body, inherit); font-size: 14px; opacity: .95; flex-basis: 100%; }
+@keyframes verdict-pop { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.stage.flash-ok { animation: flash-ok 1.2s ease-out; }
+.stage.flash-bad { animation: flash-bad 1.2s ease-out, shake .4s; }
+@keyframes flash-ok { 0% { box-shadow: 0 0 0 4px #4fd1a5, 0 0 60px #4fd1a5aa; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes flash-bad { 0% { box-shadow: 0 0 0 4px #ff6b7a, 0 0 60px #ff6b7aaa; } 100% { box-shadow: 0 0 0 0 transparent; } }
+@keyframes shake { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+.board li.ok { background: #1f9d6e26; border-color: #4fd1a5; }
+.board li.bad { background: #c23b4c22; border-color: #ff6b7a; }
+.board .bmark { font-weight: 900; font-size: 14px; }
+.board .bans.ok, .board .bans.bad { font-weight: 600; font-size: 13.5px; }
+@media (prefers-reduced-motion: reduce) { .verdict, .stage.flash-ok, .stage.flash-bad { animation: none; } }
 </style>
 </head>
 <body>
@@ -353,11 +399,48 @@ td.num { font-family: var(--f-mono); color: var(--muted); font-variant-numeric: 
       <strong>Die Seite ist als lokale Datei geöffnet.</strong> YouTube spielt Videos dann oft nicht ab (Fehler 150/153). Lade die Seite auf einen Webspace hoch oder starte im Ordner einen kleinen Server, z.&nbsp;B. <code>python -m http.server 8000</code>, und öffne <code>http://localhost:8000</code>. Details unter „Hilfe“.
     </div>
 
+    <!-- Eigene Spieleliste -->
+    <div class="card mylist" id="mylist">
+      <div class="mylist-text">
+        <h2>Deine Spiele</h2>
+        <p class="mylist-count" id="mylist-count"></p>
+      </div>
+      <div class="row">
+        <button class="btn btn-gold" id="btn-steam-add">Steam-Liste hinzufügen</button>
+        <button class="btn" id="btn-goto-games">Konsolen-Spiele ankreuzen</button>
+      </div>
+    </div>
+
+    <dialog class="dlg" id="steam-dlg">
+      <form method="dialog" class="dlg-head"><h2>Steam-Liste hinzufügen</h2><button class="btn btn-sm btn-ghost" aria-label="Schließen">✕</button></form>
+      <ol class="dlg-steps">
+        <li><a class="btn btn-sm" href="https://steamcommunity.com/my/games/?tab=all" target="_blank" rel="noopener">Meine Steam-Spieleliste öffnen ↗</a><br><span class="muted">Bei Steam eingeloggt sein. Wer jemand anderen eintragen will: <code>steamcommunity.com/id/NAME/games/?tab=all</code></span></li>
+        <li>Auf der Steam-Seite <b>ganz nach unten scrollen</b>, damit alle Spiele geladen sind.</li>
+        <li><b>Strg + A</b> (alles markieren) und <b>Strg + C</b> (kopieren). Am Handy: lange tippen → „Alles auswählen“ → „Kopieren“.</li>
+        <li>Hier einfügen (<b>Strg + V</b>):</li>
+      </ol>
+      <textarea id="dlg-paste" placeholder="Hier die kopierte Steam-Seite einfügen …"></textarea>
+      <label class="row dlg-replace"><input type="checkbox" id="dlg-replace"> Bisher angekreuzte Spiele vorher entfernen (z. B. wenn jemand anderes vorher an diesem Gerät war)</label>
+      <div class="row">
+        <button class="btn btn-gold" id="dlg-apply">Spiele übernehmen</button>
+        <button class="btn btn-ghost" id="dlg-clip" type="button">Aus Zwischenablage einfügen</button>
+      </div>
+      <p class="dlg-status" id="dlg-status"></p>
+    </dialog>
+
     <!-- Lobby -->
     <div id="lobby" class="grid-2">
       <div class="card">
         <h2>Runde einstellen</h2>
         <div class="stack" id="settings">
+          <div class="field pool-field"><span>Welche Songs sollen laufen?</span>
+            <div class="seg seg-pool" data-setting="pool">
+              <button data-v="mine"><b>Nur meine Spiele</b><small>was ich gespielt habe</small></button>
+              <button data-v="union"><b>Spiele vom Raum</b><small>was irgendwer im Raum gespielt hat</small></button>
+              <button data-v="shared"><b>Gemeinsame Spiele</b><small>was alle im Raum gespielt haben</small></button>
+              <button data-v="all"><b>Alle Spiele</b><small>auch ungespielte</small></button>
+            </div>
+          </div>
           <div class="field"><span>Antworten</span>
             <div class="seg" data-setting="mode">
               <button data-v="type">Eintippen</button><button data-v="choice">4 Antworten</button>
@@ -376,11 +459,6 @@ td.num { font-family: var(--f-mono); color: var(--muted); font-variant-numeric: 
           <div class="field"><span>Startpunkt im Song</span>
             <div class="seg" data-setting="sample">
               <button data-v="random">Zufall</button><button data-v="start">Anfang</button><button data-v="mid">Mitte</button>
-            </div>
-          </div>
-          <div class="field"><span>Songs aus</span>
-            <div class="seg" data-setting="pool">
-              <button data-v="mine">Meinen Spielen</button><button data-v="union">Allen Listen im Raum</button><button data-v="shared">Gemeinsamen Spielen</button><button data-v="all">Der ganzen Datenbank</button>
             </div>
           </div>
           <div class="field"><span>Gespielt-Anteil <em class="hint">wie „Watched“ bei AMQ</em></span>
@@ -509,6 +587,7 @@ td.num { font-family: var(--f-mono); color: var(--muted); font-variant-numeric: 
         <div id="answer-choice" class="choices" hidden></div>
 
         <div class="reveal" id="reveal" hidden>
+          <div class="verdict" id="rv-verdict" hidden></div>
           <div class="rv-grid">
             <div class="rv-cover" id="rv-cover"></div>
             <div class="rv-body">
@@ -2160,6 +2239,31 @@ window.LEITMOTIV_SONGS = [
       : "Kein Spiel erkannt. Am besten steht ein Spielname pro Zeile.";
   });
 
+  /* Steam-Liste per Kopieren & Einfügen (Dialog auf der Startseite) */
+  const dlg = $("#steam-dlg");
+  $("#btn-steam-add").addEventListener("click", () => { $("#dlg-status").textContent = ""; $("#dlg-status").className = "dlg-status"; dlg.showModal(); setTimeout(() => $("#dlg-paste").focus(), 50); });
+  $("#btn-goto-games").addEventListener("click", () => showView("games"));
+  $("#dlg-clip").addEventListener("click", async () => {
+    try { $("#dlg-paste").value = await navigator.clipboard.readText(); }
+    catch { $("#dlg-status").textContent = "Der Browser erlaubt das Auslesen nicht – bitte mit Strg + V einfügen."; }
+  });
+  $("#dlg-apply").addEventListener("click", () => {
+    const text = $("#dlg-paste").value, st = $("#dlg-status");
+    if (!text.trim()) { st.textContent = "Füge zuerst die kopierte Steam-Seite ein."; st.className = "dlg-status bad"; return; }
+    const hits = matchNames(text);
+    if (!hits.length) { st.textContent = "Kein Spiel erkannt. Hast du die ganze Steam-Spieleseite kopiert?"; st.className = "dlg-status bad"; return; }
+    if ($("#dlg-replace").checked) owned.clear();
+    const fresh = hits.filter((e) => !owned.has(e.key));
+    for (const e of hits) owned.add(e.key);
+    if (settings.pool === "all") { settings.pool = "mine"; store.set("settings", settings); renderSettings(); }
+    saveOwned(); renderGames();
+    const withSongs = GAMES.filter((g) => g.songs.some((x) => ownsSong(g, x))).length;
+    st.className = "dlg-status ok";
+    st.textContent = `✔ ${fmt(hits.length)} Spiele erkannt (${fmt(fresh.length)} neu), damit hast du jetzt ${withSongs} Spiele mit Songs im Quiz.`;
+    $("#dlg-paste").value = "";
+    setTimeout(() => { if (dlg.open) dlg.close(); toast(`${fmt(hits.length)} Spiele aus deiner Steam-Liste übernommen.`, "ok"); }, 1600);
+  });
+
   /* Steam: über Proxy */
   $("#steam-profile").value = store.get("steamProfile", "");
   $("#steam-proxy").value = store.get("steamProxy", "");
@@ -2374,7 +2478,16 @@ window.LEITMOTIV_SONGS = [
     }
     return pool;
   }
+  function updateMyList() {
+    const el = $("#mylist-count"); if (!el) return;
+    let withSongs = 0, songs = 0;
+    for (const g of GAMES) { const n = g.songs.filter((x) => ownsSong(g, x)).length; if (n) { withSongs++; songs += n; } }
+    el.innerHTML = owned.size
+      ? `<b>${fmt(owned.size)}</b> Spiele angekreuzt · <b>${withSongs}</b> davon mit Songs (${songs} Songs)`
+      : "Noch keine Spiele angekreuzt. Füge deine Steam-Liste hinzu oder kreuz Konsolen-Spiele an – dann laufen nur Songs aus Spielen, die du kennst.";
+  }
   function updatePoolInfo() {
+    updateMyList();
     if (net.mode === "client") { $("#pool-info").textContent = "Der Raum-Ersteller legt die Einstellungen fest."; return; }
     if (net.mode === "off") { H.players = new Map([["host", { id: "host", name: myName(), owned: [...owned], score: 0 }]]); }
     else { const hp = H.players.get("host"); if (hp) hp.owned = [...owned]; }
@@ -2762,6 +2875,7 @@ window.LEITMOTIV_SONGS = [
 
   function showSection(name) {
     $("#lobby").hidden = name !== "lobby";
+    $("#mylist").hidden = name !== "lobby";
     $("#game").hidden = name !== "game";
     $("#results").hidden = name !== "results";
     if (name !== "game") eqStop();
@@ -2783,7 +2897,7 @@ window.LEITMOTIV_SONGS = [
       const cls = p.out && !(r && r.elim) ? "out" : r ? (r.ok ? "ok" : "bad") : "";
       let ans;
       if (p.out && !(r && r.elim)) ans = `<span class="bans">ausgeschieden – schaut zu</span>`;
-      else if (r) ans = `<span class="bans ${r.ok ? "ok" : "bad"}">${esc(r.text || "keine Antwort")}${r.pts ? ` <b class="pts">+${r.pts}</b>` : ""}${r.elim ? " · raus!" : r.lost ? " · −1 ♥" : ""}</span>`;
+      else if (r) ans = `<span class="bans ${r.ok ? "ok" : "bad"}"><span class="bmark">${r.ok ? "✔" : "✘"}</span> ${esc(r.text || "keine Antwort")}${r.pts ? ` <b class="pts">+${r.pts}</b>` : ""}${r.elim ? " · raus!" : r.lost ? " · −1 ♥" : ""}</span>`;
       else ans = `<span class="bans"><span class="dot ${ui.answered.has(p.id) ? "on" : ""}"></span>${ui.answered.has(p.id) ? "hat geantwortet" : "überlegt …"}${ui.skipped && ui.skipped.has(p.id) ? " · Skip" : ""}</span>`;
       const score = livesMode ? `<span class="bscore lives" title="${p.lives} Leben">${"♥".repeat(Math.max(0, p.lives || 0)) || "–"}</span>` : `<span class="bscore">${p.score}</span>`;
       return `<li class="${cls} ${p.id === me ? "me" : ""}">
@@ -3028,8 +3142,17 @@ window.LEITMOTIV_SONGS = [
         const rv = $("#reveal");
         rv.hidden = false;
         rv.className = "reveal " + (mine ? (mine.ok ? "ok" : "bad") : "");
+        const vd = $("#rv-verdict");
+        vd.hidden = !mine || mine.out;
+        if (mine && !mine.out) {
+          vd.className = "verdict " + (mine.ok ? "ok" : "bad");
+          vd.innerHTML = mine.ok
+            ? `<span class="v-icon">✔</span><span class="v-main">Richtig!</span>${mine.pts ? `<span class="v-pts">+${mine.pts} ${mine.pts === 1 ? "Punkt" : "Punkte"}</span>` : ""}`
+            : `<span class="v-icon">✘</span><span class="v-main">${mine.text ? "Falsch" : "Keine Antwort"}</span><span class="v-sub">${mine.text ? `Deine Antwort: ${esc(mine.text)}` : ""}${mine.elim ? " · du bist raus" : mine.lost ? " · ein Leben weniger" : ""}</span>`;
+          const stage = $(".stage"); stage.classList.remove("flash-ok", "flash-bad"); void stage.offsetWidth; stage.classList.add(mine.ok ? "flash-ok" : "flash-bad");
+        }
         $("#rv-title").textContent = msg.title;
-        $("#rv-song").textContent = `„${msg.song}“` + (mine && !mine.out ? (mine.ok ? ` · richtig!${mine.pts > 1 ? ` +${mine.pts} Punkte` : ""}` : (mine.text ? ` · deine Antwort: ${mine.text}` : " · keine Antwort") + (mine.elim ? " · du bist raus" : mine.lost ? " · ein Leben weniger" : "")) : "");
+        $("#rv-song").textContent = `„${msg.song}“`;
         const ce = CAT_BY_KEY.get(msg.key) || lookupName(msg.title);
         $("#rv-cover").innerHTML = coverHtml(ce, "big");
         $("#rv-diff").hidden = msg.diff == null;
