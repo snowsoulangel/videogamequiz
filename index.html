@@ -369,6 +369,15 @@ td.num { font-family: var(--f-mono); color: var(--muted); font-variant-numeric: 
 .board .bmark { font-weight: 900; font-size: 14px; }
 .board .bans.ok, .board .bans.bad { font-weight: 600; font-size: 13.5px; }
 @media (prefers-reduced-motion: reduce) { .verdict, .stage.flash-ok, .stage.flash-bad { animation: none; } }
+
+/* ---------- Verlauf ---------- */
+.hist-stats { display: flex; flex-wrap: wrap; gap: 8px 20px; color: var(--muted); }
+.hist-stats b { color: var(--text); font-size: 18px; }
+.hist td.nowrap, .hist .nowrap { white-space: nowrap; }
+.hist tr.h-ok td:first-child { box-shadow: inset 3px 0 0 var(--ok); }
+.hist tr.h-bad td:first-child { box-shadow: inset 3px 0 0 var(--bad); }
+.hist tr.h-skip td:first-child { box-shadow: inset 3px 0 0 var(--muted); }
+.check-list { margin: 10px 0 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; max-height: 320px; overflow: auto; }
 </style>
 </head>
 <body>
@@ -385,6 +394,7 @@ td.num { font-family: var(--f-mono); color: var(--muted); font-variant-numeric: 
       <button class="tab" role="tab" data-view="play" aria-selected="true">Spielen</button>
       <button class="tab" role="tab" data-view="games" aria-selected="false">Meine Spiele</button>
       <button class="tab" role="tab" data-view="songs" aria-selected="false">Songs</button>
+      <button class="tab" role="tab" data-view="history" aria-selected="false">Verlauf</button>
       <button class="tab" role="tab" data-view="help" aria-selected="false">Hilfe</button>
     </nav>
   </div>
@@ -720,6 +730,21 @@ td.num { font-family: var(--f-mono); color: var(--muted); font-variant-numeric: 
 
   <!-- ===================== SONGS ===================== -->
   <section class="view" id="view-songs" hidden>
+    <div class="card" style="margin-bottom:16px">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h2 style="margin:0 0 4px">Songs prüfen</h2>
+          <p class="muted" style="margin:0">Testet in deinem Browser, welche YouTube-Videos abspielbar sind (manche sind in Deutschland gesperrt). Dauert ein paar Minuten.</p>
+        </div>
+        <div class="row">
+          <button class="btn" id="btn-check">Alle Songs testen</button>
+          <button class="btn btn-gold" id="btn-check-disable" hidden>Nicht abspielbare deaktivieren</button>
+        </div>
+      </div>
+      <p class="muted" id="check-status" style="margin:10px 0 0"></p>
+      <ul class="check-list" id="check-list"></ul>
+      <div id="check-player" style="position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none"></div>
+    </div>
     <div class="grid-2">
       <div class="card">
         <h2>Song hinzufügen</h2>
@@ -782,6 +807,26 @@ td.num { font-family: var(--f-mono); color: var(--muted); font-variant-numeric: 
   </section>
 
   <!-- ===================== HILFE ===================== -->
+  <section class="view" id="view-history" hidden>
+    <div class="card">
+      <div class="row" style="justify-content:space-between; align-items:flex-start">
+        <div>
+          <h2>Verlauf</h2>
+          <p class="muted" style="margin:0 0 10px">Alle Songs, die in diesem Browser gespielt wurden – mit deiner Antwort. Übersprungene Songs kannst du hier deaktivieren.</p>
+        </div>
+        <button class="btn btn-sm btn-ghost" id="btn-hist-clear">Verlauf löschen</button>
+      </div>
+      <div class="hist-stats" id="hist-stats"></div>
+      <div class="seg" id="hist-filter" style="margin:12px 0">
+        <button data-f="all">Alle</button><button data-f="ok">Richtig</button><button data-f="bad">Falsch</button><button data-f="skip">Übersprungen</button>
+      </div>
+      <div class="table-wrap"><table class="hist">
+        <thead><tr><th>Wann</th><th>Spiel</th><th>Song</th><th>Ergebnis</th><th></th></tr></thead>
+        <tbody id="hist-body"></tbody>
+      </table></div>
+    </div>
+  </section>
+
   <section class="view" id="view-help" hidden>
     <div class="card help">
       <h2>So funktioniert das VideoGameQuiz</h2>
@@ -879,9 +924,9 @@ window.LEITMOTIV_SONGS = [
     ] },
   { id: "totk", title: "The Legend of Zelda: Tears of the Kingdom", aliases: ["totk","zelda totk","tears of the kingdom"],
     songs: [
-      { title: "Main Theme", yt: "2Z7d8jE3SYM", type: "main" },
-      { title: "Demon King Ganondorf", yt: "OxdjO3kz0O8", type: "battle" },
-      { title: "Lookout Landing", yt: "4qtwKvFxHRY", type: "area" }
+      { title: "Main Theme", yt: "jW7LEygnsDc", type: "main" },
+      { title: "Demon King Ganondorf", yt: "IoybO37EztY", type: "battle" },
+      { title: "Lookout Landing", yt: "7XdfW6PNZ0w", type: "area" }
     ] },
   { id: "oot", title: "The Legend of Zelda: Ocarina of Time", cat: ["The Legend of Zelda: Ocarina of Time / Master Quest"], aliases: ["oot","ocarina of time","zelda oot"],
     songs: [
@@ -923,25 +968,24 @@ window.LEITMOTIV_SONGS = [
     songs: [
       { title: "Gusty Garden Galaxy", yt: "1bvDHAUv2ak", type: "area", also: ["Super Smash Bros. Brawl","Mario Kart World"] },
       { title: "Rosalina's Comet Observatory", yt: "qns5aYc7Ozw", type: "area", also: ["Mario Kart World"] },
-      { title: "Egg Planet", yt: "XsYlK-ZxcmM", type: "area", also: ["Mario Kart World"] }
+      { title: "Egg Planet", yt: "yO8a5A4jU_A", type: "area", also: ["Mario Kart World"] }
     ] },
   { id: "odyssey", title: "Super Mario Odyssey", aliases: ["mario odyssey","smo"],
     songs: [
       { title: "Jump Up, Super Star!", yt: "VVw9SJHRuPM", type: "vocal", also: ["Super Smash Bros. Ultimate","Mario Kart World"] },
-      { title: "New Donk City", yt: "Pd0CCCmI7sw", type: "area" },
       { title: "Fossil Falls", yt: "1v0rCXmTe9Y", type: "area", also: ["Mario Kart World"] }
     ] },
   { id: "mkwii", title: "Mario Kart Wii", aliases: ["mkwii","mk wii"],
     songs: [
       { title: "Coconut Mall", yt: "8imD4edEqJY", type: "area", also: ["Mario Kart 8 Deluxe","Mario Kart World"] },
       { title: "Rainbow Road", yt: "BjjNdkFGrPI", type: "area", also: ["Mario Kart 8 Deluxe","Mario Kart World"] },
-      { title: "DK Summit", yt: "be337mef4XA", type: "area", also: ["Mario Kart 8 Deluxe","Mario Kart World"] }
+      { title: "DK Summit", yt: "kKo2zIria6Y", type: "area", also: ["Mario Kart 8 Deluxe","Mario Kart World"] }
     ] },
   { id: "mk8", title: "Mario Kart 8 Deluxe", cat: ["Mario Kart 8"], aliases: ["mk8","mk8dx","mario kart 8"],
     songs: [
-      { title: "Main Theme", yt: "dJ1_zKOFMjY", type: "main" },
-      { title: "Rainbow Road", yt: "ksDFjM_5r_s", type: "area", also: ["Mario Kart World"] },
-      { title: "Electrodrome", yt: "wHKD9jhqZfM", type: "area", also: ["Mario Kart World"] },
+      { title: "Main Theme", yt: "YWkbfwTN46Y", type: "main" },
+      { title: "Rainbow Road", yt: "zxGCJJUakUI", type: "area", also: ["Mario Kart World"] },
+      { title: "Electrodrome", yt: "1_DbgNHDFDg", type: "area", also: ["Mario Kart World"] },
       { title: "Mount Wario", yt: "fuqmRkaAZUc", type: "area", also: ["Mario Kart World"] }
     ] },
   { id: "luigi", title: "Luigi's Mansion", aliases: ["luigis mansion 1"],
@@ -980,7 +1024,7 @@ window.LEITMOTIV_SONGS = [
   { id: "pkmn-swsh", title: "Pokémon Sword", cat: ["Pokémon Shield","Pokémon Sword / Shield"], aliases: ["pokemon sword and shield","pokemon schwert","pokemon schild","pokemon schwert und schild","swsh"],
     songs: [
       { title: "Kampf! (Wildes Pokémon)", yt: "x4RT8h8d-Sw", type: "battle" },
-      { title: "Battle! (Gym Leader)", yt: "5u3t0MvUjbw", type: "battle" },
+      { title: "Battle! (Gym Leader)", yt: "quYjN57Tycg", type: "battle" },
       { title: "Battle! (Champion Leon)", yt: "bUG_NS0xqSY", type: "battle" }
     ] },
   { id: "splatoon", title: "Splatoon", aliases: ["splatoon 1"],
@@ -990,7 +1034,7 @@ window.LEITMOTIV_SONGS = [
     ] },
   { id: "kirby-ss", title: "Kirby Super Star", cat: ["Kirby Super Star Ultra"], aliases: ["kirby superstar","kirbys fun pak"],
     songs: [
-      { title: "Gourmet Race", yt: "gO4CYnY7oK0", type: "area", also: ["Super Smash Bros. Brawl","Super Smash Bros. Ultimate"] },
+      { title: "Gourmet Race", yt: "Se1uh3PS78Y", type: "area", also: ["Super Smash Bros. Brawl","Super Smash Bros. Ultimate"] },
       { title: "Green Greens", yt: "IRFom8SvKXI", type: "area", also: ["Kirby's Dream Land","Super Smash Bros. Ultimate"] }
     ] },
   { id: "xenoblade", title: "Xenoblade Chronicles", cat: ["Xenoblade Chronicles: Definitive Edition"], aliases: ["xenoblade","xc1"],
@@ -1020,7 +1064,7 @@ window.LEITMOTIV_SONGS = [
   { id: "metroid-prime", title: "Metroid Prime", cat: ["Metroid Prime Remastered"], aliases: ["metroid prime 1"],
     songs: [
       { title: "Phendrana Drifts", yt: "z1TmIANeWMg", type: "area" },
-      { title: "Tallon Overworld", yt: "4eYyt36RyZs", type: "area" }
+      { title: "Tallon Overworld", yt: "mziw3FQkZYg", type: "area" }
     ] },
   { id: "banjo", title: "Banjo-Kazooie", aliases: ["banjo kazooie","banjo"],
     songs: [
@@ -1035,7 +1079,7 @@ window.LEITMOTIV_SONGS = [
   { id: "octopath", title: "Octopath Traveler", aliases: ["octopath"],
     songs: [
       { title: "Main Theme", yt: "2uU2m3HqCGQ", type: "main" },
-      { title: "Battle I", yt: "8c2u3vI0QS0", type: "battle" }
+      { title: "Battle I", yt: "Twyn_cPl8mA", type: "battle" }
     ] },
   { id: "chrono-trigger", title: "Chrono Trigger", plats: ["SNES","PS1","DS","WII","PSN","MOB","PC"], aliases: ["ct"],
     songs: [
@@ -1054,8 +1098,8 @@ window.LEITMOTIV_SONGS = [
   { id: "sf2", title: "Street Fighter II: The World Warrior", cat: ["Street Fighter II","Street Fighter II Turbo","Street Fighter II': Champion Edition","Super Street Fighter II"], aliases: ["street fighter 2","sf2","street fighter ii"],
     songs: [
       { title: "Guile's Theme", yt: "scSiYVzpeTs", type: "battle", also: ["Super Smash Bros. Ultimate"] },
-      { title: "Ken's Theme", yt: "PfWXFMOH1xc", type: "battle", also: ["Super Street Fighter II","Street Fighter II Turbo"] },
-      { title: "Ryu's Theme", yt: "wOB2ONRq5j4", type: "battle", also: ["Super Street Fighter II","Street Fighter II Turbo","Super Smash Bros. Ultimate"] }
+      { title: "Ken's Theme", yt: "-14W5XTqL5U", type: "battle", also: ["Super Street Fighter II","Street Fighter II Turbo"] },
+      { title: "Ryu's Theme", yt: "wkdz9hl-cVQ", type: "battle", also: ["Super Street Fighter II","Street Fighter II Turbo","Super Smash Bros. Ultimate"] }
     ] },
   { id: "mm2", title: "Mega Man 2", exclude: ["Mega Man II"], aliases: ["megaman 2","rockman 2"],
     songs: [
@@ -1065,7 +1109,7 @@ window.LEITMOTIV_SONGS = [
     ] },
   { id: "sonic", title: "Sonic the Hedgehog", steam: [71113,584400], match: ["sonic the hedgehog"], aliases: ["sonic 1"],
     songs: [
-      { title: "Green Hill Zone", yt: "1rxU-L6cWoQ", type: "area", also: ["Sonic Mania","Sonic Generations"] },
+      { title: "Green Hill Zone", yt: "G-i8HYi1QH0", type: "area", also: ["Sonic Mania","Sonic Generations"] },
       { title: "Star Light Zone", yt: "pzOYTPw1nk4", type: "area" },
       { title: "Marble Zone", yt: "nSSqnhLg8uw", type: "area" }
     ] },
@@ -1088,7 +1132,7 @@ window.LEITMOTIV_SONGS = [
   { id: "ff9", title: "Final Fantasy IX", plats: ["PS1","PSN","PC","MOB","PS4","NS","XONE"], steam: [377840], match: ["final fantasy ix"], aliases: ["ff9","ffix"],
     songs: [
       { title: "Melodies of Life", yt: "YUP-UW_ynQc", type: "vocal" },
-      { title: "You're Not Alone!", yt: "KKAoSY5bhSw", type: "battle" },
+      { title: "You're Not Alone!", yt: "Ha6iWPqrJeE", type: "battle" },
       { title: "Vamo' alla flamenco", yt: "hySiB28eS5o", type: "area" }
     ] },
   { id: "crash", title: "Crash Bandicoot", aliases: ["crash 1","crash"],
@@ -1097,7 +1141,7 @@ window.LEITMOTIV_SONGS = [
     ] },
   { id: "spyro", title: "Spyro the Dragon", aliases: ["spyro","spyro 1"],
     songs: [
-      { title: "Stone Hill", yt: "w-f-F2ow2mo", type: "area" },
+      { title: "Stone Hill", yt: "7TXNx-pMiAE", type: "area" },
       { title: "Town Square", yt: "VEe_3VF-lHE", type: "area", also: ["Spyro Reignited Trilogy"] }
     ] },
   { id: "mgs", title: "Metal Gear Solid", cat: ["Metal Gear Solid Integral"], aliases: ["mgs","mgs1"],
@@ -1110,12 +1154,12 @@ window.LEITMOTIV_SONGS = [
     songs: [
       { title: "Dracula's Castle", yt: "X7faGl3O6Oc", type: "area" },
       { title: "Lost Painting", yt: "bmSVUO_BSuI", type: "area" },
-      { title: "I Am the Wind", yt: "iU6NDZoxIdU", type: "vocal" },
+      { title: "I Am the Wind", yt: "eLsgLtTd4Go", type: "vocal" },
       { title: "Wood Carving Partita", yt: "MJpCM-dYbtQ", type: "area" }
     ] },
   { id: "chrono-cross", title: "Chrono Cross", cat: ["Chrono Cross: The Radical Dreamers Edition"], aliases: ["cc"],
     songs: [
-      { title: "Scars of Time", yt: "Yo2PG0cdCv8", type: "main" },
+      { title: "Scars of Time", yt: "180sjeAMKPE", type: "main" },
       { title: "Radical Dreamers ~Unstolen Jewel~", yt: "VdRzE9jBqt8", type: "vocal" }
     ] },
   { id: "tomb-raider", title: "Tomb Raider", plats: ["SAT","PS1","PC","PSN"], year: 1996, exclude: ["Tomb Raider: Definitive Edition"], aliases: ["tomb raider 1","tomb raider 1996"],
@@ -1132,7 +1176,7 @@ window.LEITMOTIV_SONGS = [
     ] },
   { id: "suikoden2", title: "Suikoden II", aliases: ["suikoden 2","gensou suikoden 2"],
     songs: [
-      { title: "Opening", yt: "jWTAAH8S6C4", type: "main" }
+      { title: "Opening", yt: "_f4eGQ9MIWM", type: "main" }
     ] },
   { id: "ffx", title: "Final Fantasy X", cat: ["Final Fantasy X International","Final Fantasy X / X-2 HD Remaster","Final Fantasy X HD","Final Fantasy X/X-2"], steam: [359870], match: ["final fantasy x x 2"], aliases: ["ffx","ff10","final fantasy 10"],
     songs: [
@@ -1175,7 +1219,7 @@ window.LEITMOTIV_SONGS = [
     ] },
   { id: "katamari", title: "Katamari Damacy", cat: ["Katamari Damacy Reroll"], steam: [848350], match: ["katamari damacy"], aliases: ["katamari"],
     songs: [
-      { title: "Katamari on the Rocks", yt: "BMRgfEnOKKU", type: "main" },
+      { title: "Katamari on the Rocks", yt: "iMH49ieL4es", type: "main" },
       { title: "Lonely Rolling Star", yt: "7_QydNXI_ok", type: "vocal", also: ["Katamari Damacy Reroll"] }
     ] },
   { id: "dmc3", title: "Devil May Cry 3: Dante's Awakening", cat: ["Devil May Cry 3","Devil May Cry 3 Special Edition","Devil May Cry 3: Dante's Awakening Special Edition"], aliases: ["dmc3","devil may cry 3"],
@@ -1249,7 +1293,7 @@ window.LEITMOTIV_SONGS = [
     songs: [
       { title: "Hunter's Dream", yt: "j1UIB_CfX78", type: "area" },
       { title: "Cleric Beast", yt: "8LOR9JXK1Og", type: "battle" },
-      { title: "Ludwig, the Holy Blade", yt: "ZeBjXTyYTdY", type: "battle" },
+      { title: "Ludwig, the Holy Blade", yt: "ALbVEmzY5S4", type: "battle" },
       { title: "Gehrman, the First Hunter", yt: "p04bbDd42Dc", type: "battle" }
     ] },
   { id: "journey", title: "Journey", steam: [638230], aliases: [],
@@ -1323,7 +1367,7 @@ window.LEITMOTIV_SONGS = [
     ] },
   { id: "ffxiv", title: "Final Fantasy XIV: A Realm Reborn", cat: ["Final Fantasy XIV Online","Final Fantasy XIV Online Complete Edition"], plats: ["PC","PS3","PS4","PS5","XS"], year: 2013, steam: [39210], match: ["final fantasy xiv"], aliases: ["ffxiv","ff14","final fantasy 14","final fantasy xiv"],
     songs: [
-      { title: "Answers", yt: "QIxO6A8gsGw", type: "main" },
+      { title: "Answers", yt: "bREZqkbI2WU", type: "main" },
       { title: "Dragonsong", yt: "GG7sunYvruM", type: "vocal", also: ["Final Fantasy XIV: Heavensward"] },
       { title: "Shuffle or Boogie (Triple Triad)", yt: "tm3_1PVBFCs", type: "area", also: ["Final Fantasy VIII"] },
       { title: "Tomorrow and Tomorrow", yt: "_4lJsmCqvCI", type: "vocal", also: ["Final Fantasy XIV: Shadowbringers"] }
@@ -1354,7 +1398,7 @@ window.LEITMOTIV_SONGS = [
     songs: [
       { title: "No Escape", yt: "1nnqzy9_K3I", type: "main" },
       { title: "Good Riddance", yt: "GuqIPgQLGN8", type: "vocal" },
-      { title: "In the Blood", yt: "9QtokupweyQ", type: "vocal" },
+      { title: "In the Blood", yt: "ojx8dyes__8", type: "vocal" },
       { title: "God of the Dead", yt: "X6W6Pb3mkdg", type: "battle" }
     ] },
   { id: "terraria", title: "Terraria", steam: [105600], match: ["terraria"], aliases: [],
@@ -1365,8 +1409,8 @@ window.LEITMOTIV_SONGS = [
   { id: "elden-ring", title: "Elden Ring", steam: [1245620], match: ["elden ring"], aliases: [],
     songs: [
       { title: "Main Theme", yt: "ZhR184lhtEk", type: "main" },
-      { title: "Malenia, Blade of Miquella", yt: "WSVjb2OJZTA", type: "battle" },
-      { title: "Godfrey, First Elden Lord", yt: "QW7HyzWBUho", type: "battle" },
+      { title: "Malenia, Blade of Miquella", yt: "W3SWV8tvu18", type: "battle" },
+      { title: "Godfrey, First Elden Lord", yt: "lHqZZkDvW-o", type: "battle" },
       { title: "The Final Battle (Radagon)", yt: "_i3d5_X4hd4", type: "battle" }
     ] },
   { id: "portal2", title: "Portal 2", steam: [620], match: ["portal 2"], aliases: [],
@@ -1381,7 +1425,7 @@ window.LEITMOTIV_SONGS = [
     ] },
   { id: "tf2", title: "Team Fortress 2", steam: [440], match: ["team fortress 2"], aliases: ["tf2"],
     songs: [
-      { title: "Main Theme", yt: "yxGGlCj-21o", type: "main" }
+      { title: "Main Theme", yt: "PDM2qukzKwg", type: "main" }
     ] },
   { id: "doom-eternal", title: "Doom Eternal", steam: [782330], match: ["doom eternal"], aliases: [],
     songs: [
@@ -1417,7 +1461,7 @@ window.LEITMOTIV_SONGS = [
     ] },
   { id: "outer-wilds", title: "Outer Wilds", steam: [753640], match: ["outer wilds"], aliases: [],
     songs: [
-      { title: "Timber Hearth", yt: "A1zolCadyY4", type: "area" },
+      { title: "Timber Hearth", yt: "SPa8bPqQfmo", type: "area" },
       { title: "Travelers", yt: "z34enKCqRGk", type: "main" },
       { title: "End Times", yt: "WVGlXbApOCs", type: "main" }
     ] },
@@ -1427,7 +1471,7 @@ window.LEITMOTIV_SONGS = [
     ] },
   { id: "halo2", title: "Halo 2", steam: [976730], match: ["halo the master chief collection"], aliases: ["halo mcc"],
     songs: [
-      { title: "Halo Theme (Mjolnir Mix)", yt: "sCxv2daOwjQ", type: "main", also: ["Halo: The Master Chief Collection"] }
+      { title: "Halo Theme (Mjolnir Mix)", yt: "Qz7EhV4t4Es", type: "main", also: ["Halo: The Master Chief Collection"] }
     ] },
   { id: "halo3", title: "Halo 3", aliases: [],
     songs: [
@@ -2326,6 +2370,7 @@ window.LEITMOTIV_SONGS = [
     for (const t of $$(".tab")) t.setAttribute("aria-selected", String(t.dataset.view === name));
     for (const v of $$(".view")) v.hidden = v.id !== "view-" + name;
     if (name === "games") renderGames();
+    if (name === "history") renderHistory();
     if (name === "songs") renderSongs();
     if (name === "play") updatePoolInfo();
     try { history.replaceState(null, "", "#" + name); } catch (e) {}
@@ -2718,6 +2763,90 @@ window.LEITMOTIV_SONGS = [
     $("#io-status").textContent = `${added} Songs importiert.`;
   });
 
+  const ERR_TEXT = { 2: "ungültige Video-ID", 5: "Player-Fehler", 100: "Video gelöscht oder privat", 101: "Einbetten verboten", 150: "Einbetten verboten / in Deutschland gesperrt", 153: "Einbetten verboten", timeout: "lädt nicht (Zeitüberschreitung)", api: "YouTube nicht erreichbar" };
+  /* ---------- Songs prüfen: welche Videos sind hier abspielbar? ---------- */
+  let checkBad = [];
+  $("#btn-check").addEventListener("click", async () => {
+    const btn = $("#btn-check"); btn.disabled = true; $("#btn-check-disable").hidden = true; $("#check-list").innerHTML = ""; checkBad = [];
+    const st = $("#check-status");
+    try { await loadYouTube(); } catch (e) { st.textContent = "YouTube konnte nicht geladen werden."; btn.disabled = false; return; }
+    const list = []; for (const g of GAMES) for (const s2 of g.songs) list.push({ g, s: s2 });
+    const box = $("#check-player"); box.innerHTML = "";
+    const mk = (n) => new Promise((res) => { const d = document.createElement("div"); d.id = "chkp" + n; box.appendChild(d);
+      const pl = new YT.Player(d.id, { width: 200, height: 112, playerVars: { autoplay: 1, mute: 1, controls: 0 }, events: { onReady: () => res(pl) } }); });
+    const players = await Promise.all([0, 1, 2].map(mk));
+    let idx = 0, done = 0;
+    const work = async (pl) => {
+      let cb = null;
+      pl.addEventListener("onStateChange", (e) => { if (cb && e.data === 1) cb("ok"); });
+      pl.addEventListener("onError", (e) => { if (cb) cb(e.data); });
+      while (idx < list.length) {
+        const it = list[idx++];
+        const r = await new Promise((res) => { let f = false; const fin = (v) => { if (!f) { f = true; cb = null; res(v); } }; cb = fin; pl.mute(); pl.loadVideoById(it.s.yt); setTimeout(() => fin("timeout"), 20000); });
+        done++;
+        if (r !== "ok") {
+          checkBad.push(it.s.yt);
+          $("#check-list").insertAdjacentHTML("beforeend", `<li><b>${esc(it.g.title)}</b> – ${esc(it.s.title)} <span class="res-bad">${esc(ERR_TEXT[r] || "Fehler " + r)}</span> <a href="https://www.youtube.com/watch?v=${esc(it.s.yt)}" target="_blank" rel="noopener">YouTube</a></li>`);
+        }
+        st.textContent = `${done} von ${list.length} getestet · ${checkBad.length} nicht abspielbar`;
+      }
+      try { pl.stopVideo(); } catch (e) {}
+    };
+    await Promise.all(players.map(work));
+    st.textContent = `Fertig: ${list.length - checkBad.length} von ${list.length} Songs sind abspielbar.` + (checkBad.length ? ` ${checkBad.length} gehen nicht – du kannst sie deaktivieren, dann kommen sie im Quiz nicht mehr.` : "");
+    $("#btn-check-disable").hidden = !checkBad.length || net.mode === "client";
+    btn.disabled = false; box.innerHTML = "";
+  });
+  $("#btn-check-disable").addEventListener("click", () => {
+    for (const id of checkBad) disabled.add(id);
+    store.set("disabled", [...disabled]); renderSongs(); updatePoolInfo();
+    toast(`${checkBad.length} Songs deaktiviert.`, "ok"); $("#btn-check-disable").hidden = true;
+  });
+
+  /* ---------- Verlauf: welche Songs gespielt wurden ---------- */
+  let playLog = store.get("history", []) || [];
+  const hf = { filter: "all" };
+  function logPlay(e) {
+    if (!e || !e.yt) return;
+    playLog.unshift({ at: Date.now(), mode: net.mode === "client" || net.mode === "host" ? "room" : "solo", ...e });
+    if (playLog.length > 3000) playLog.length = 3000;
+    store.set("history", playLog);
+    if (!$("#view-history").hidden) renderHistory();
+  }
+  function renderHistory() {
+    const rows = playLog.filter((h) => hf.filter === "all" || h.res === hf.filter || (hf.filter === "bad" && h.res === "bad"));
+    const played = playLog.filter((h) => h.res === "ok" || h.res === "bad");
+    const okN = played.filter((h) => h.res === "ok").length;
+    const skipN = playLog.filter((h) => h.res === "skip").length;
+    $("#hist-stats").innerHTML = playLog.length
+      ? `<span><b>${fmt(playLog.length)}</b> Songs gespielt</span><span><b>${played.length ? Math.round(100 * okN / played.length) : 0} %</b> richtig</span><span><b>${fmt(skipN)}</b> übersprungen</span>`
+      : "";
+    const day = (t) => new Date(t).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+    const res = (h) => h.res === "ok" ? `<span class="res-ok">✔ richtig${h.pts > 1 ? ` (+${h.pts})` : ""}</span>`
+      : h.res === "bad" ? `<span class="res-bad">✘ ${esc(h.text || "keine Antwort")}</span>`
+      : h.res === "skip" ? `<span class="res-skip">übersprungen – ${esc(ERR_TEXT[h.code] || "Fehler " + h.code)}</span>`
+      : `<span class="muted">zugeschaut</span>`;
+    $("#hist-body").innerHTML = rows.slice(0, 500).map((h) => `<tr class="h-${h.res}">
+      <td class="muted nowrap">${day(h.at)}</td>
+      <td>${esc(h.title)}</td>
+      <td>${esc(h.song)} <span class="type-${h.type}" style="font-size:12px">· ${TYPE_LABEL[h.type] || ""}</span></td>
+      <td>${res(h)}</td>
+      <td class="nowrap"><a href="https://www.youtube.com/watch?v=${esc(h.yt)}" target="_blank" rel="noopener">YouTube</a>${h.res === "skip" && net.mode !== "client" ? ` <button class="btn btn-sm btn-ghost" data-disable="${esc(h.yt)}">${disabled.has(h.yt) ? "deaktiviert" : "Deaktivieren"}</button>` : ""}</td>
+    </tr>`).join("") || `<tr><td colspan="5" class="muted">Noch keine Songs gespielt.</td></tr>`;
+    for (const b of $$("#hist-filter button")) b.setAttribute("aria-pressed", String(b.dataset.f === hf.filter));
+  }
+  $("#hist-filter").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; hf.filter = b.dataset.f; renderHistory(); });
+  $("#hist-body").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-disable]"); if (!b) return;
+    const id = b.dataset.disable;
+    if (disabled.has(id)) disabled.delete(id); else disabled.add(id);
+    store.set("disabled", [...disabled]); renderHistory(); updatePoolInfo();
+  });
+  $("#btn-hist-clear").addEventListener("click", () => {
+    if (!playLog.length) return;
+    playLog = []; store.set("history", playLog); renderHistory(); toast("Verlauf gelöscht.");
+  });
+
   /* ---------- Einstellungen (Lobby) ---------- */
   function renderSettings(src = settings, readOnly = false) {
     for (const seg of $$("#settings .seg")) {
@@ -2844,14 +2973,22 @@ window.LEITMOTIV_SONGS = [
   }
   function ytPrepare(r) {
     return new Promise(async (resolve) => {
-      const finish = (res) => { if (!p.done) { p.done = true; clearTimeout(p.t1); clearTimeout(p.t2); $("#btn-unblock").hidden = true; resolve(res); } };
+      const finish = (res) => { if (!p.done) { p.done = true; clearTimeout(p.t1); clearTimeout(p.t2); clearInterval(p.t3); $("#btn-unblock").hidden = true; resolve(res); } };
       const p = { r, done: false, finish };
       prep = p;
       try { await loadYouTube(); } catch (e) { return finish({ ok: false, code: "api" }); }
       if (prep !== p) return finish({ ok: false, code: "stale" });
       try { yt.mute(); yt.loadVideoById({ videoId: r.yt }); } catch (e) { return finish({ ok: false, code: "load" }); }
-      p.t1 = setTimeout(() => { if (!p.done) $("#btn-unblock").hidden = false; }, 4500);
-      p.t2 = setTimeout(() => finish({ ok: false, code: "timeout" }), 14000);
+      // Hängt das Laden (Werbung vor dem Video, blockiertes Autoplay), nach einiger Zeit Hinweis + „Ton freigeben“
+      p.t1 = setTimeout(() => { if (!p.done) { $("#btn-unblock").hidden = false; $("#cover-msg").textContent = "Video lädt noch (evtl. läuft Werbung) …"; } }, 5000);
+      p.t3 = setInterval(() => { if (p.done) return clearInterval(p.t3); try { if (yt.getPlayerState() === YT.PlayerState.PAUSED && yt.getDuration() > 0) yt.playVideo(); } catch (e) {} }, 2500);
+      p.t2 = setTimeout(() => {
+        clearInterval(p.t3);
+        // Video ist geladen, startet aber nicht von selbst? Dann trotzdem mitspielen statt überspringen
+        let dur = 0; try { dur = yt.getDuration(); } catch (e) {}
+        if (dur > 0) { try { yt.seekTo(calcStart(dur, p.r), true); yt.pauseVideo(); } catch (e) {} finish({ ok: true, late: true }); }
+        else finish({ ok: false, code: "timeout" });
+      }, 30000);
     });
   }
   function onYtState(e) {
@@ -3115,13 +3252,13 @@ window.LEITMOTIV_SONGS = [
     if (H.s.mode === "choice") r.choices = makeChoices(it.game, it.song);
     H.cur = r;
     hostSend(r);
-    H.timers.load = setTimeout(hostGo, 15000);
+    H.timers.load = setTimeout(hostGo, 32000);
   }
   function hostSkip(code) {
     const it = H.queue[H.idx];
     H.stopTimers(); H.phase = "skip";
     H.history.push({ n: H.idx + 1, title: it.game.title, song: it.song.title, type: it.song.type, plats: it.game.plats, year: it.game.year, yt: it.song.yt, status: "error", code, results: {} });
-    hostSend({ t: "skip", n: H.idx + 1, code });
+    hostSend({ t: "skip", n: H.idx + 1, code, title: it.game.title, key: it.game.key, song: it.song.title, type: it.song.type, yt: it.song.yt });
     H.timers.next = setTimeout(hostNext, 1500);
   }
   function hostGo() {
@@ -3426,6 +3563,7 @@ window.LEITMOTIV_SONGS = [
       }
       case "skip": {
         toast(`Song ${msg.n} übersprungen – das Video ist nicht verfügbar.`);
+        logPlay({ title: msg.title, key: msg.key, song: msg.song, type: msg.type, yt: msg.yt, res: "skip", code: msg.code });
         ui.phase = "skip"; setInputs(false); clearInterval(ui.countdown);
         break;
       }
@@ -3439,6 +3577,7 @@ window.LEITMOTIV_SONGS = [
         else $("#cover-msg").textContent = "Aufgelöst";
         eqStop();
         const mine = msg.results[meId()];
+        logPlay({ title: msg.title, key: msg.key, song: msg.song, type: msg.type, yt: msg.yt, res: !mine || mine.out ? "watch" : mine.ok ? "ok" : "bad", text: mine && mine.text, pts: mine && mine.pts });
         const rv = $("#reveal");
         rv.hidden = false;
         rv.className = "reveal " + (mine ? (mine.ok ? "ok" : "bad") : "");

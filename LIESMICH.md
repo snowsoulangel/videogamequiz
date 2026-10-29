@@ -15,12 +15,16 @@ Ein Musikquiz für Videospiel-Soundtracks nach dem Vorbild von AMQ (Anime Music 
 - **Song-Info**: Cover, Jahr, „Erschienen für …“, wer das Spiel angekreuzt hat, Trefferquote des Songs
 - **Mehrspieler** per Einladungslink mit **Chat**; jeder hört auf dem eigenen Gerät
 
+**Verlauf**: Jeder Browser merkt sich, welche Songs gespielt wurden – mit Antwort, richtig/falsch und übersprungenen Songs samt Grund.
+
+**Songs prüfen** (Tab „Songs“): testet alle Videos im eigenen Browser und deaktiviert auf Wunsch die, die nicht abspielbar sind.
+
 **Meine Spiele**
 - Rund 85.000 Spiele als **Cover zum Ankreuzen** – PS1 bis PS5, PSP, Vita, NES bis Switch 2, Game Boy bis 3DS, Xbox bis Series, PC, Sega und mehr
 - Sortiert nach Verkaufs- und Spielerzahlen; mit Konsolenfilter nach den Verkäufen auf genau dieser Konsole
 - Steam-Bibliothek per Proxy oder per eingefügter Liste automatisch ankreuzen
 
-**Songs**: 469 Songs aus 244 Spielen – pro Spiel bis zu 5 der bekanntesten Stücke (Main Theme, Gebiete, Kämpfe, Gesang). Läuft ein Song auch in anderen Spielen (Remix, Remake, Smash Bros., Mario Kart …), zählen diese ebenfalls als richtige Antwort und werden bei der Auflösung unter „Auch in …“ gezeigt. Eigene YouTube-Links hinzufügen, kaputte deaktivieren, Listen mit Freunden teilen.
+**Songs**: 468 Songs aus 244 Spielen – pro Spiel bis zu 5 der bekanntesten Stücke (Main Theme, Gebiete, Kämpfe, Gesang). Läuft ein Song auch in anderen Spielen (Remix, Remake, Smash Bros., Mario Kart …), zählen diese ebenfalls als richtige Antwort und werden bei der Auflösung unter „Auch in …“ gezeigt. Eigene YouTube-Links hinzufügen, kaputte deaktivieren, Listen mit Freunden teilen.
 
 ## Online stellen (nötig, damit YouTube abspielt)
 
